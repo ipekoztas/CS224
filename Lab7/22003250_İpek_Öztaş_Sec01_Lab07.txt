@@ -1,0 +1,117 @@
+CS 224
+Lab No. 7
+Section No. 001
+İpek Öztaş
+22003250
+
+
+// PART B DC MOTOR
+
+/*
+Configuration  for dc motor project:
+ 
+Connect portA to DC Motor
+Jumpers of portA are : 5V, pull up ( both of the to the left side )
+ 
+Connect portE to push-buttons
+Jumpers of portF are : 3V3, pull up ( top one to right, other to left )
+ 
+*/
+
+void main(){
+
+ AD1PCFG = 0xFFFF;
+ DDPCON.JTAGEN = 0; // disable JTAG
+
+ TRISA = 0x0000;  
+ TRISE = 0XFFFF;  
+
+ while(1)
+ {
+         
+    if ( PORTE.RE2 == 0 && PORTE.RE1 == 1 )
+    {
+        // counter clockwise
+        PORTA.RA1 = 1;
+    }
+    if ( PORTE.RE2 == 1 && PORTE.RE1 == 0 )  
+    {
+        // clockwise
+        PORTA.RA2 = 1;
+    }
+    else //stop
+    {
+        PORTA = 0x00;
+    }
+ }
+
+// PART C SEVEN SEGMENT
+
+/*
+Configuration for the code below:
+
+Connect portA to J1 Port of 4 Digit Seven Segment Module
+Jumpers of portA are : 5V, pull down ( top one to left, other to right )
+
+Connect portE to J2 Port of 4 Digit Seven Segment Module
+Jumpers of portE are : 5V, pull down ( top one to left, other to right )
+*/
+
+// 0001 will be the initial configuration
+    int index1 = 0;
+    int index2 = 0;
+    int index3 = 0;
+    int index4 = 1;
+    int x;                // counter will be used to increment each digit
+    int fx;
+    int i = 0;
+
+// Hexadecimal values for digits in 7 segment
+unsigned char binary_pattern[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F};
+
+// Function to calculate f(x) = x^3
+int calculate_fx(int x) {
+    return x * x * x;
+}
+
+void main(){
+// 3210 will be the initial configuration
+ AD1PCFG = 0xFFFF;      // Configure AN pins as digital I/O
+ JTAGEN_bit = 0;        // Disable JTAG
+
+ TRISA = 0x00;  //portA is output to D
+ TRISE = 0X00;  //portE is output to AN
+ while (1) {
+        // Calculate f(x)
+        fx = calculate_fx(x);
+
+         for(i = 0; i<256; i++){
+          // Display f(x) on the four-digit seven-segment display
+          PORTA = binary_pattern[fx % 10];        // Display the first digit of f(x)
+          PORTE = 0x08;                           // Open the first digit
+          Delay_ms(1);
+
+          PORTA = binary_pattern[(fx / 10) % 10]; // Display the second digit of f(x)
+          PORTE = 0x04;                           // Open the second digit
+          Delay_ms(1);
+
+          PORTA = binary_pattern[(fx / 100) % 10];// Display the third digit of f(x)
+          PORTE = 0x02;                           // Open the third digit
+          Delay_ms(1);
+
+          PORTA = binary_pattern[(fx / 1000) % 10];// Display the fourth digit of f(x)
+          PORTE = 0x01;                           // Open the fourth digit
+          Delay_ms(1);
+        }
+        // Increment x for the next iteration
+        x++;
+
+        // Reset x to 1 if it exceeds 21 (to start the sequence again)
+        if (x > 21) {
+            x = 1;
+        }
+ 	// To wait 1s between each output
+       	//Delay_ms(9996);                      // 4ms was already delayed
+    }
+
+}

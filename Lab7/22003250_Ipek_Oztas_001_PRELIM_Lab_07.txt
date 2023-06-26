@@ -1,0 +1,162 @@
+CS224/ Lab No. 7
+Section No: 001
+İpek Öztaş
+22003250
+27.05.2023
+
+############### PART A #############################
+
+SFRs to be used: TRISx (to determine I/O), PORTx (push buttons)
+TRISx: This register is used to configure the direction (input or output) of the corresponding GPIO port. 
+The "x" in TRISx represents the port letter. 
+PORTx: It allows you to determine whether a button is pressed or not. 
+
+############### PART B #############################
+
+/*
+Configuration  for dc motor project:
+ 
+Connect portA to DC Motor
+Jumpers of portA are : 5V, pull up ( both of the to the left side )
+ 
+Connect portE to push-buttons
+Jumpers of portF are : 3V3, pull up ( top one to right, other to left )
+ 
+*/
+ 
+void main() {
+ 
+ AD1PCFG = 0xFFFF;               
+// configures the analog-to-digital converter (ADC) pins as digital input/output (I/O) pins.
+//This means that the pins that can be used for analog input are now configured as digital I/O.
+
+ DDPCON.JTAGEN = 0;              
+// disables the JTAG (Joint Test Action Group) functionality. 
+//JTAG is a debugging interface, and 
+//disabling it allows the corresponding pins to be used as general-purpose I/O pins.
+ 
+ // 0 means output and 1 means input
+ TRISA = 0x0000;       // pins in portA are the output pins for the dc motor
+ TRISF = 0XFFFF;       // pins in portF are the input pins for push-buttons
+ 
+ while(1)
+ {
+    // portF is the state of input pins 
+    // portFbits.RF0 specifies pin RF0 which corresponds to push button 0
+    // portFbits.RF1 specifies pin RF1 which corresponds to push button 1
+
+    // Since pull up resistors are used, the default state for portA would be 1
+    // thus, all the remaining bits are set to 1.
+    
+
+//If portFbits.RF0 is 0 (button 0 pressed) and portFbits.RF1 is 1 (button 1 not pressed), 
+//the code sets pin RA2 of Port A to 0, which corresponds to clockwise rotation of the DC motor.
+    if( portFbits.RF0 == 1 && portFbits.RF1 == 0 ){
+         // RA1 pin is set to 0 for counter-clockwise rotation
+         PORTA = 0xFFFD;      // 1101
+    }
+
+//If portFbits.RF0 is 1 (button 0 not pressed) and portFbits.RF1 is 0 (button 1 pressed), 
+//the code sets pin RA1 of Port A to 0, which corresponds to counterclockwise rotation of the DC motor.
+    else if( portFbits.RF0 == 0 && portFbits.RF1 == 1 ){
+         // RA2 pin is set to 0 for clockwise rotation
+         PORTA = 0xFFFB;      // 1011
+    }
+ 
+//If both buttons are pressed (portFbits.RF0 and portFbits.RF1 are 0), 
+//the code sets pin RA0 of Port A to 0, which corresponds to an instant stop of the DC motor.
+    else if( portFbits.RF0 == 0 && portFbits.RF1 == 0 ){
+         // RA0 pin is set to 0 for instant stop
+         PORTA = 0xFFFE;      // 1110
+    }
+
+ }
+ 
+}
+
+############### PART C #############################
+
+SFRs to be used: TRISx (to determine I/O), PORTx (push buttons)
+TRISx: This register is used to configure the direction (input or output) of the corresponding GPIO port. 
+The "x" in TRISx represents the port letter. 
+PORTx: It allows you to determine whether a button is pressed or not. 
+
+############### PART D #############################
+
+/*
+Configuration for the code below:
+
+Connect portA to J1 Port of 4 Digit Seven Segment Module
+Jumpers of portA are : 5V, pull down ( top one to left, other to right )
+
+Connect portE to J2 Port of 4 Digit Seven Segment Module
+Jumpers of portE are : 5V, pull down ( top one to left, other to right )
+*/
+
+#include <xc.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+// Hexadecimal values for digits in 7 segment
+unsigned char binary_pattern[] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+
+// Function to introduce a delay
+
+void WaitBetween(int number){
+     Delay_ms(number);
+}
+// Function to calculate f(x) = x^3
+uint32_t calculate_fx(uint8_t x) {
+    return x * x * x;
+}
+
+void main() {
+    uint8_t x = 1;
+    uint32_t fx;
+
+    // 0001 will be the initial configuration
+    int index1 = 0;
+    int index2 = 0;
+    int index3 = 0;
+    int index4 = 1;
+
+    AD1PCFG = 0xFFFF;           // Configure AN pins as digital I/O
+    JTAGEN_bit = 0;             // Disable JTAG
+
+    TRISA = 0x00;               // portA is output to D
+    TRISE = 0x00;               // portE is output to AN
+
+    while (1) {
+        // Calculate f(x)
+        fx = calculate_fx(x);
+
+        // Display f(x) on the four-digit seven-segment display
+        PORTA = binary_pattern[fx % 10];        // Display the first digit of f(x)
+        PORTE = 0x08;                           // Open the first digit
+        WaitBetween(1);
+
+        PORTA = binary_pattern[(fx / 10) % 10]; // Display the second digit of f(x)
+        PORTE = 0x04;                           // Open the second digit
+        WaitBetween(1);
+
+        PORTA = binary_pattern[(fx / 100) % 10];// Display the third digit of f(x)
+        PORTE = 0x02;                           // Open the third digit
+        WaitBetween(1);
+
+        PORTA = binary_pattern[(fx / 1000) % 10];// Display the fourth digit of f(x)
+        PORTE = 0x01;                           // Open the fourth digit
+        WaitBetween(1);
+
+        // Increment x for the next iteration
+        x++;
+
+        // Reset x to 1 if it exceeds 21 (to start the sequence again)
+        if (x > 21) {
+            x = 1;
+        }
+ 	// To wait 1s between each output
+       	WaitBetween(9996);                      // 4ms was already delayed
+    }
+    
+}
+

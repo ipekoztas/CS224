@@ -1,0 +1,215 @@
+.data
+
+prompt1:	.asciiz "\nEnter the array size: "
+prompt2:	.asciiz "\nEnter an array element: "
+prompt3:	.asciiz "\--Array elements--"
+array1:		.asciiz "Array1= ["
+array2:		.asciiz "\nArray2= ["
+comma:		.asciiz ","
+param:		.asciiz "]"
+hammingdist:	.asciiz "\nHamming distance between the two arrays is: "
+.text
+
+main:
+
+	promptUser:
+	la $a0, prompt1
+	li $v0, 4
+	syscall
+	
+	li $v0, 5
+	syscall
+	
+	ble $v0, $zero, promptUser	#arraysize > 0
+	
+	# $a1 holds the array size 
+	move $a1, $v0 
+	
+	jal createArray
+	#a2 array1 address
+	move $a2, $v0 
+	
+	
+	jal createArray
+	#a3 array2 address
+	move $a3, $v0 
+	
+	la $a0, array1
+	li $v0, 4
+	syscall
+	
+	move $a0, $a2
+	jal printArray
+	
+	la $a0, array2
+	li $v0, 4
+	syscall
+	
+	move $a0, $a3
+	jal printArray
+	
+	
+	
+	jal calculateArray
+	move $s0, $v0 #hamming dist
+	
+	la $a0, hammingdist
+	li $v0, 4
+	syscall
+	
+	li $v0, 1
+	move $a0, $s0
+	syscall
+	
+	li $v0, 10
+	syscall
+	
+	
+
+createArray:
+	addi $sp, $sp, -8
+	sw $s0, 4($sp)
+
+	
+	# $a1 = arraysize
+	
+	move $s0, $a1
+	mul $s0, $s0, 4
+	
+	li $v0, 9
+	move $a0, $s0
+	syscall
+	
+	move $a0, $v0		# array address
+	
+	#save $ra
+	sw $ra, 0($sp)
+	jal initializeArray
+	lw $ra, 0($sp)
+	
+	move $v0, $a0
+	lw $s0, 4($sp)
+	addi $sp, $sp, 8
+	
+	jr $ra
+	
+initializeArray:
+	#input arraysize($a1) and array address($a0)
+	addi $sp, $sp, -12
+	sw $a0, 8($sp)
+	sw $s0, 4($sp)
+	sw $s1, 0($sp)
+
+	move $s1, $a0
+	move $s0, $a1
+	
+	li $v0, 4
+	la $a0, prompt3
+	syscall
+	
+	getInput:
+		li $v0, 4
+		la $a0, prompt2
+		syscall
+	
+		li $v0, 5
+		syscall
+		
+		sw $v0, 0($s1)		# store the element into memory
+		addi $s1, $s1, 4
+		addi $s0, $s0, -1
+		bne $s0, $zero, getInput
+
+	lw $a0, 8($sp)
+	lw $s0, 4($sp)
+	lw $s1, 0($sp)
+	addi $sp, $sp, 12
+	jr $ra
+	
+printArray:
+	addi $sp, $sp, -20
+	sw $t1, 16($sp)
+	sw $t0, 12($sp)
+	sw $s2, 8($sp)
+	sw $s1, 4($sp)
+	sw $s0, 0($sp)
+	
+	move $s0, $a0	#array address
+	move $s1, $a1	#array size
+
+	beq $s1, $0, donePrinting
+	printNext:
+
+		lw $s2, 0($s0)
+	
+		li $v0, 1
+		move $a0, $s2
+		syscall
+		
+		li $t1, 2
+		
+		slt $t0, $s1, $t1
+		beq $t0, 0 printcomma 
+		
+		li $v0, 4
+		la $a0, param
+		syscall
+		j donePrinting
+	
+	printcomma:
+		li $v0, 4
+		la $a0, comma
+		syscall
+	
+		addi $s0, $s0, 4
+		addi $s1, $s1, -1
+		bne $s1, $0, printNext
+	
+
+	
+	donePrinting:
+	lw $t1, 16($sp)
+	lw $t0, 12($sp)
+	lw $s2, 8($sp)
+	lw $s1, 4($sp)
+	lw $s0, 0($sp)
+	addi $sp, $sp, 20
+	jr $ra
+	
+calculateArray:	
+	addi $sp, $sp, -24
+	sw $s3, 20($sp)
+	sw $s2, 16($sp)
+	sw $s1, 12($sp)
+	sw $s0, 8($sp)
+	sw $t1, 4($sp)
+	sw $t0, 0($sp)
+	
+
+	move $s0, $a1 #array size
+	move $s1, $a2	#array1 address
+	move $s2, $a3 	#array2 address
+	li $s3, 0	#count 
+	
+	compare:
+		beq $s0, $0, finishCal
+		lw $t0, 0($s1) #array1 element
+		lw $t1, 0($s2) #array2 element
+		beq $t0, $t1, continue
+		addi $s3, $s3, 1
+	continue:
+		addi $s1, $s1, 4
+		addi $s2, $s2, 4
+		addi $s0, $s0, -1
+		j compare
+	finishCal:
+		move $v0, $s3
+		
+	lw $s3, 20($sp)
+	lw $s2, 16($sp)
+	lw $s1, 12($sp)
+	lw $s0, 8($sp)
+	lw $t1, 4($sp)
+	lw $t0, 0($sp)
+	addi $sp, $sp, 24
+	jr $ra
